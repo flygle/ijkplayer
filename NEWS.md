@@ -1,6 +1,31 @@
 tag next
 --------------------------------
 
+tag k0.7.9
+--------------------------------
+- ffmpeg: add tcp timeout control
+- android: support soundtouch
+
+tag k0.7.8
+--------------------------------
+- ffplay: support accurate seek
+- ijkio: fix some issue
+- ios: add ijkplayer dynamic target with ssl
+
+tag k0.7.7
+--------------------------------
+- ffmpeg: enable ijkio protocol
+- ffmpeg: avoid some unreasonable pts
+- ios: fix a crash caused by videotoolbox sync initialization fail
+
+tag k0.7.6
+--------------------------------
+- ffmpeg: ass subtitle support
+- msg_queue: add resource for msg_queue
+- ios: separate vtb sync mode from mixed vtb
+- android: fix some thread competition
+- android: support setSpeed for pre-M(api<23) versions
+
 tag k0.7.5
 --------------------------------
 - ffmpeg: disable-asm on architecture x86

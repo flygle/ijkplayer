@@ -1,6 +1,7 @@
 /*
  * IJKAVMoviePlayerController.m
  *
+ * Copyright (c) 2014 Bilibili
  * Copyright (c) 2014 Zhang Rui <bbcallen@gmail.com>
  *
  * This file is part of ijkPlayer.
@@ -784,7 +785,7 @@ static IJKAVMoviePlayerController* instance;
             CMTime currentTime = [_player currentTime];
             
             BOOL foundRange = NO;
-            CMTimeRange aTimeRange;
+            CMTimeRange aTimeRange = {0};
             
             if (timeRangeArray.count) {
                 aTimeRange = [[timeRangeArray objectAtIndex:0] CMTimeRangeValue];

@@ -1,6 +1,7 @@
 /*
  * ffpipenode_android_mediacodec_vdec.c
  *
+ * Copyright (c) 2014 Bilibili
  * Copyright (c) 2014 Zhang Rui <bbcallen@gmail.com>
  *
  * This file is part of ijkPlayer.
@@ -110,6 +111,7 @@ typedef struct IJKFF_Pipenode_Opaque {
     double                    last_queued_pts;
 
     SDL_SpeedSampler          sampler;
+    volatile bool             abort;
 } IJKFF_Pipenode_Opaque;
 
 static SDL_AMediaCodec *create_codec_l(JNIEnv *env, IJKFF_Pipenode *node)
@@ -611,7 +613,7 @@ static int feed_input_buffer(JNIEnv *env, IJKFF_Pipenode *node, int64_t timeUs, 
                     !opaque->acodec_reconfigure_request &&
                     !opaque->acodec_flush_request &&
                     opaque->acodec_first_dequeue_output_request) {
-                    SDL_CondWaitTimeout(opaque->acodec_first_dequeue_output_cond, opaque->acodec_first_dequeue_output_mutex, 1000);
+                    SDL_CondWaitTimeout(opaque->acodec_first_dequeue_output_cond, opaque->acodec_first_dequeue_output_mutex, 100);
                 }
                 SDL_UnlockMutex(opaque->acodec_first_dequeue_output_mutex);
 
@@ -714,7 +716,7 @@ static int enqueue_thread_func(void *arg)
         goto fail;
     }
 
-    while (!q->abort_request) {
+    while (!q->abort_request && !opaque->abort) {
         ret = feed_input_buffer(env, node, AMC_INPUT_TIMEOUT_US, &dequeue_count);
         if (ret != 0) {
             goto fail;
@@ -855,7 +857,7 @@ static int drain_output_buffer_l(JNIEnv *env, IJKFF_Pipenode *node, int64_t time
 #endif
 #ifdef FFP_AMC_DISABLE_OUTPUT
         if (!(bufferInfo.flags & AMEDIACODEC__BUFFER_FLAG_FAKE_FRAME)) {
-            SDL_AMediaCodec_releaseOutputBuffer(opaque->acodec, output_buffer_index, false);   
+            SDL_AMediaCodec_releaseOutputBuffer(opaque->acodec, output_buffer_index, false);
         }
         goto done;
 #endif
@@ -1052,6 +1054,8 @@ static int func_run_sync(IJKFF_Pipenode *node)
 
 fail:
     av_frame_free(&frame);
+    opaque->abort = true;
+    SDL_WaitThread(opaque->enqueue_thread, NULL);
     SDL_AMediaCodecFake_abort(opaque->acodec);
     if (opaque->n_buf_out) {
         free(opaque->amc_buf_out);
@@ -1065,7 +1069,6 @@ fail:
         SDL_LockMutex(opaque->acodec_mutex);
         SDL_UnlockMutex(opaque->acodec_mutex);
     }
-    SDL_WaitThread(opaque->enqueue_thread, NULL);
     SDL_AMediaCodec_stop(opaque->acodec);
     SDL_AMediaCodec_decreaseReferenceP(&opaque->acodec);
     ALOGI("MediaCodec: %s: exit: %d", __func__, ret);
